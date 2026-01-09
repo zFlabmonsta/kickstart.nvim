@@ -138,10 +138,24 @@ return {
 
     -- Install golang specific config
     require('dap-go').setup {
+      dap_configurations = {
+        {
+          -- Must be "go" or it will be ignored by the plugin
+          type = "go",
+          name = "Attach to Scooter Flowstate",
+          mode = "remote",
+          request = "attach",
+          host = "127.0.0.1",
+          substitutePath = {
+            { from = vim.fn.getcwd(), to = '/app' },
+          },
+        },
+      },
       delve = {
         -- On Windows delve must be run attached or it crashes.
         -- See https://github.com/leoluz/nvim-dap-go/blob/main/README.md#configuring
         detached = vim.fn.has 'win32' == 0,
+        port = 2347,
       },
     }
   end,

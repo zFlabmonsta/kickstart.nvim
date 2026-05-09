@@ -231,6 +231,9 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
+-- .asdf
+vim.env.PATH = os.getenv('HOME') .. '/.asdf/shims:' .. vim.env.PATH
+
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -571,6 +574,7 @@ require('lazy').setup({
         gopls = {
           settings = {
             gopls = {
+              buildFlags = { '-tags=integration' },
               codelenses = {
                 gc_details = false,
                 generate = true,
@@ -586,6 +590,7 @@ require('lazy').setup({
                 unusedparams = true,
                 unusedwrite = true,
                 useany = true,
+                ST1000 = false,
               },
               completeUnimported = true,
               staticcheck = true,
@@ -641,19 +646,15 @@ require('lazy').setup({
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
       require('mason-lspconfig').setup {
-        ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
+        ensure_installed = {},
         automatic_installation = false,
-        handlers = {
-          function(server_name)
-            local server = servers[server_name] or {}
-            -- This handles overriding only values explicitly passed
-            -- by the server configuration above. Useful when disabling
-            -- certain features of an LSP (for example, turning off formatting for ts_ls)
-            server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
-          end,
-        },
       }
+
+      -- Set up each server with capabilities and custom settings
+      for server_name, server in pairs(servers) do
+        server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+        vim.lsp.config(server_name, server)
+      end
     end,
   },
 
@@ -691,6 +692,7 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         go = { 'goimports' },
+        c = { 'clang-format' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --

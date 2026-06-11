@@ -182,7 +182,6 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 vim.diagnostic.setqflist()
 vim.keymap.set('n', '<leader>xx', vim.diagnostic.setloclist, { desc = 'Open diagnostic Quickfi[x][x] list' })
 
-
 -- My custom QOL
 vim.keymap.set('v', 'J', ":m '>+1<CR>gv=gv")
 vim.keymap.set('v', 'K', ":m '<-2<CR>gv=gv")
@@ -232,7 +231,7 @@ vim.api.nvim_create_autocmd('TextYankPost', {
 })
 
 -- .asdf
-vim.env.PATH = os.getenv('HOME') .. '/.asdf/shims:' .. vim.env.PATH
+vim.env.PATH = os.getenv 'HOME' .. '/.asdf/shims:' .. vim.env.PATH
 
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
@@ -244,6 +243,13 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
     error('Error cloning lazy.nvim:\n' .. out)
   end
 end
+
+-- copy relative path
+vim.keymap.set('n', '<leader>rp', function()
+  local path = vim.fn.expand '%'
+  vim.fn.setreg('+', path)
+  vim.notify(path)
+end, { desc = 'Copy relative path' })
 
 ---@type vim.Option
 local rtp = vim.opt.rtp
@@ -383,7 +389,7 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>km', builtin.keymaps, { desc = '[K]ey [M]aps' })
       vim.keymap.set('n', '<leader>pf', builtin.find_files, { desc = '[P]roject [F]iles' })
       vim.keymap.set('n', '<leader>ps', function()
-        builtin.grep_string({ search = vim.fn.input("Grep > ") });
+        builtin.grep_string { search = vim.fn.input 'Grep > ' }
       end)
       vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
 

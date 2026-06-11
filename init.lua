@@ -179,7 +179,7 @@ vim.o.confirm = true
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 -- Diagnostic keymaps
-vim.diagnostic.setqflist()
+vim.keymap.set('n', '<leader>q', vim.diagnostic.setqflist, { desc = 'Open diagnostic [Q]uickfix list' })
 vim.keymap.set('n', '<leader>xx', vim.diagnostic.setloclist, { desc = 'Open diagnostic Quickfi[x][x] list' })
 
 -- My custom QOL
@@ -660,7 +660,7 @@ require('lazy').setup({
 
       require('mason-lspconfig').setup {
         ensure_installed = {},
-        automatic_installation = false,
+        automatic_enable = true,
       }
 
       -- Set up each server with capabilities and custom settings

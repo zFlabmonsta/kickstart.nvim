@@ -244,12 +244,19 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
   end
 end
 
--- copy relative path
+-- Copy relative path
 vim.keymap.set('n', '<leader>rp', function()
   local path = vim.fn.expand '%'
   vim.fn.setreg('+', path)
   vim.notify(path)
 end, { desc = 'Copy relative path' })
+
+-- Copy relative path with line number to clipboard
+vim.keymap.set('n', '<leader>rpl', function()
+  local path = vim.fn.expand '%' .. ':' .. vim.fn.line '.'
+  vim.fn.setreg('+', path)
+  vim.notify(path)
+end, { desc = 'Copy relative path with line number' })
 
 ---@type vim.Option
 local rtp = vim.opt.rtp

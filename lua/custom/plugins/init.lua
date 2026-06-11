@@ -50,6 +50,7 @@ return {
     dependencies = { 'tpope/vim-rhubarb' },
     config = function()
       vim.keymap.set('n', '<leader>GS', vim.cmd.Git)
+      vim.keymap.set('n', '<leader>GB', ':.GBrowse<CR>', { desc = 'GBrowse current line' })
     end,
   },
   {

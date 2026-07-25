@@ -110,7 +110,7 @@ do
   vim.o.number = true
   -- You can also add relative line numbers, to help with jumping.
   --  Experiment for yourself to see if you like it!
-  -- vim.o.relativenumber = true
+  vim.o.relativenumber = true
 
   -- Enable mouse mode, can be useful for resizing splits for example!
   vim.o.mouse = 'a'
@@ -128,7 +128,12 @@ do
   vim.o.breakindent = true
 
   -- Enable undo/redo changes even after closing and reopening a file
+  vim.opt.undodir = os.getenv 'HOME' .. '/.vim/undordir'
   vim.o.undofile = true
+
+  -- backup and swap
+  vim.opt.swapfile = false
+  vim.opt.backup = false
 
   -- Case-insensitive searching UNLESS \C or one or more capital letters in the search term
   vim.o.ignorecase = true
@@ -156,7 +161,7 @@ do
   --   See `:help lua-options`
   --   and `:help lua-guide-options`
   vim.o.list = true
-  vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
+  vim.opt.listchars = { tab = '  ', trail = '·', nbsp = '␣' }
 
   -- Preview substitutions live, as you type!
   vim.o.inccommand = 'split'
@@ -171,6 +176,19 @@ do
   -- instead raise a dialog asking if you wish to save the current file(s)
   -- See `:help 'confirm'`
   vim.o.confirm = true
+
+  -- My custom QOL
+  vim.keymap.set('v', 'J', ":m '>+1<CR>gv=gv")
+  vim.keymap.set('v', 'K', ":m '<-2<CR>gv=gv")
+
+  vim.keymap.set('n', 'J', 'mzJ`z')
+  vim.keymap.set('n', '<C-d>', '<C-d>zz')
+  vim.keymap.set('n', '<C-u>', '<C-u>zz')
+  vim.keymap.set('n', 'n', 'nzzzv')
+  vim.keymap.set('n', 'N', 'Nzzzv')
+
+  vim.keymap.set({ 'n', 'v' }, '<leader>y', '"+y')
+  vim.keymap.set('n', '<leader>Y', '"+Y')
 end
 
 -- ============================================================
@@ -251,6 +269,51 @@ do
     group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
     callback = function() vim.hl.on_yank() end,
   })
+
+  -- Use a narrower tab width for Go files (falls back to this when no .editorconfig is present)
+  vim.api.nvim_create_autocmd('FileType', {
+    desc = 'Set Go tab width',
+    pattern = 'go',
+    group = vim.api.nvim_create_augroup('go-tabwidth', { clear = true }),
+    callback = function()
+      vim.bo.tabstop = 4
+      vim.bo.shiftwidth = 4
+    end,
+  })
+
+  -- .asdf
+  vim.env.PATH = os.getenv 'HOME' .. '/.asdf/shims:' .. vim.env.PATH
+
+  -- Copy relative path
+  vim.keymap.set('n', '<leader>rp', function()
+    local path = vim.fn.expand '%'
+    vim.fn.setreg('+', path)
+    vim.notify(path)
+  end, { desc = 'Copy relative path' })
+
+  -- Copy relative path with line number to clipboard
+  vim.keymap.set('n', '<leader>rpl', function()
+    local path = vim.fn.expand '%' .. ':' .. vim.fn.line '.'
+    vim.fn.setreg('+', path)
+    vim.notify(path)
+  end, { desc = 'Copy relative path with line number' })
+
+  -- Copy relative path with highlighted line range to clipboard
+  vim.keymap.set('v', '<leader>rpl', function()
+    local start_line = vim.fn.line 'v'
+    local end_line = vim.fn.line '.'
+    if start_line > end_line then
+      start_line, end_line = end_line, start_line
+    end
+    local path = vim.fn.expand '%'
+    if start_line == end_line then
+      path = path .. ':' .. start_line
+    else
+      path = path .. ':' .. start_line .. '-' .. end_line
+    end
+    vim.fn.setreg('+', path)
+    vim.notify(path)
+  end, { desc = 'Copy relative path with line range' })
 end
 
 -- ============================================================
@@ -361,39 +424,20 @@ do
     },
   }
 
-  -- Useful plugin to show you pending keybinds.
-  vim.pack.add { gh 'folke/which-key.nvim' }
-  require('which-key').setup {
-    -- Delay between pressing a key and opening which-key (milliseconds)
-    delay = 0,
-    icons = { mappings = vim.g.have_nerd_font },
-    -- Document existing key chains
-    spec = {
-      { '<leader>s', group = '[S]earch', mode = { 'n', 'v' } },
-      { '<leader>t', group = '[T]oggle' },
-      { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } }, -- Enable gitsigns recommended keymaps first
-      { 'gr', group = 'LSP Actions', mode = { 'n' } },
-    },
-  }
-
   -- [[ Colorscheme ]]
   -- You can easily change to a different colorscheme.
   -- Change the name of the colorscheme plugin below, and then
   -- change the command under that to load whatever the name of that colorscheme is.
   --
   -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-  vim.pack.add { gh 'folke/tokyonight.nvim' }
-  ---@diagnostic disable-next-line: missing-fields
-  require('tokyonight').setup {
+  vim.pack.add { { src = gh 'rose-pine/neovim', name = 'rose-pine' } }
+  require('rose-pine').setup {
     styles = {
-      comments = { italic = false }, -- Disable italics in comments
+      italic = false,
     },
   }
 
-  -- Load the colorscheme here.
-  -- Like many other themes, this one has different styles, and you could load
-  -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-  vim.cmd.colorscheme 'tokyonight-night'
+  vim.cmd.colorscheme 'rose-pine'
 
   -- Highlight todo, notes, etc in comments
   vim.pack.add { gh 'folke/todo-comments.nvim' }
@@ -511,17 +555,9 @@ do
 
   -- See `:help telescope.builtin`
   local builtin = require 'telescope.builtin'
-  vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
-  vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
-  vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
-  vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
-  vim.keymap.set({ 'n', 'v' }, '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
-  vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
-  vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
-  vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
-  vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
-  vim.keymap.set('n', '<leader>sc', builtin.commands, { desc = '[S]earch [C]ommands' })
-  vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
+  vim.keymap.set('n', '<leader>pf', builtin.find_files, { desc = 'Search Files' })
+  vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = 'Search Diagnostics' })
+  vim.keymap.set('n', '<leader>ps', function() builtin.grep_string { search = vim.fn.input 'Grep > ' } end)
 
   -- Add Telescope-based LSP pickers when an LSP attaches to a buffer.
   -- If you later switch picker plugins, this is where to update these mappings.
@@ -531,30 +567,26 @@ do
       local buf = event.buf
 
       -- Find references for the word under your cursor.
-      vim.keymap.set('n', 'grr', builtin.lsp_references, { buffer = buf, desc = '[G]oto [R]eferences' })
+      vim.keymap.set('n', 'gr', builtin.lsp_references, { buffer = buf, desc = 'Goto References' })
 
       -- Jump to the implementation of the word under your cursor.
       -- Useful when your language has ways of declaring types without an actual implementation.
-      vim.keymap.set('n', 'gri', builtin.lsp_implementations, { buffer = buf, desc = '[G]oto [I]mplementation' })
+      vim.keymap.set('n', 'gi', builtin.lsp_implementations, { buffer = buf, desc = 'Goto Implementation' })
 
       -- Jump to the definition of the word under your cursor.
       -- This is where a variable was first declared, or where a function is defined, etc.
       -- To jump back, press <C-t>.
-      vim.keymap.set('n', 'grd', builtin.lsp_definitions, { buffer = buf, desc = '[G]oto [D]efinition' })
+      vim.keymap.set('n', 'gd', builtin.lsp_definitions, { buffer = buf, desc = 'Goto Definition' })
 
-      -- Fuzzy find all the symbols in your current document.
-      -- Symbols are things like variables, functions, types, etc.
-      vim.keymap.set('n', 'gO', builtin.lsp_document_symbols, { buffer = buf, desc = 'Open Document Symbols' })
-
-      -- Fuzzy find all the symbols in your current workspace.
-      -- Similar to document symbols, except searches over your entire project.
-      vim.keymap.set('n', 'gW', builtin.lsp_dynamic_workspace_symbols, { buffer = buf, desc = 'Open Workspace Symbols' })
+      -- WARN: This is not Goto Definition, this is Goto Declaration.
+      --  For example, in C this would take you to the header.
+      vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, { buffer = buf, desc = 'Goto Declaration' })
 
       -- Jump to the type of the word under your cursor.
       -- Useful when you're not sure what type a variable is and you want to see
       -- the definition of its *type*, not where it was *defined*.
-      vim.keymap.set('n', 'grt', builtin.lsp_type_definitions, { buffer = buf, desc = '[G]oto [T]ype Definition' })
-    end,
+      vim.keymap.set('n', 'gt', builtin.lsp_type_definitions, { buffer = buf, desc = '[G]oto [T]ype Definition' })
+   end,
   })
 
   -- Override default behavior and theme when searching
@@ -565,23 +597,6 @@ do
       previewer = false,
     })
   end, { desc = '[/] Fuzzily search in current buffer' })
-
-  -- It's also possible to pass additional configuration options.
-  --  See `:help telescope.builtin.live_grep()` for information about particular keys
-  vim.keymap.set(
-    'n',
-    '<leader>s/',
-    function()
-      builtin.live_grep {
-        grep_open_files = true,
-        prompt_title = 'Live Grep in Open Files',
-      }
-    end,
-    { desc = '[S]earch [/] in Open Files' }
-  )
-
-  -- Shortcut for searching your Neovim configuration files
-  vim.keymap.set('n', '<leader>sn', function() builtin.find_files { cwd = vim.fn.stdpath 'config', follow = true } end, { desc = '[S]earch [N]eovim files' })
 end
 
 -- ============================================================
@@ -638,45 +653,14 @@ do
 
       -- Rename the variable under your cursor.
       --  Most Language Servers support renaming across files, etc.
-      map('grn', vim.lsp.buf.rename, '[R]e[n]ame')
-
-      -- Execute a code action, usually your cursor needs to be on top of an error
-      -- or a suggestion from your LSP for this to activate.
-      map('gra', vim.lsp.buf.code_action, '[G]oto Code [A]ction', { 'n', 'x' })
-
-      -- WARN: This is not Goto Definition, this is Goto Declaration.
-      --  For example, in C this would take you to the header.
-      map('grD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
+      map('<leader>rn', vim.lsp.buf.rename, '[R]e[n]ame')
 
       -- The following two autocommands are used to highlight references of the
       -- word under your cursor when your cursor rests there for a little while.
       --    See `:help CursorHold` for information about when this is executed
       --
-      -- When you move your cursor, the highlights will be cleared (the second autocommand).
+
       local client = vim.lsp.get_client_by_id(event.data.client_id)
-      if client and client:supports_method('textDocument/documentHighlight', event.buf) then
-        local highlight_augroup = vim.api.nvim_create_augroup('kickstart-lsp-highlight', { clear = false })
-        vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
-          buffer = event.buf,
-          group = highlight_augroup,
-          callback = vim.lsp.buf.document_highlight,
-        })
-
-        vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
-          buffer = event.buf,
-          group = highlight_augroup,
-          callback = vim.lsp.buf.clear_references,
-        })
-
-        vim.api.nvim_create_autocmd('LspDetach', {
-          group = vim.api.nvim_create_augroup('kickstart-lsp-detach', { clear = true }),
-          callback = function(event2)
-            vim.lsp.buf.clear_references()
-            vim.api.nvim_clear_autocmds { group = 'kickstart-lsp-highlight', buffer = event2.buf }
-          end,
-        })
-      end
-
       -- The following code creates a keymap to toggle inlay hints in your
       -- code, if the language server you are using supports them
       --
@@ -693,7 +677,88 @@ do
   ---@type table<string, vim.lsp.Config>
   local servers = {
     -- clangd = {},
-    -- gopls = {},
+    gopls = {
+      settings = {
+        gopls = {
+          buildFlags = { '-tags=integration' },
+          codelenses = {
+            gc_details = false,
+            generate = true,
+            regenerate_cgo = true,
+            run_govulncheck = true,
+            test = true,
+            tidy = true,
+            upgrade_dependency = true,
+            vendor = true,
+          },
+          analyses = {
+            -- Everything on: all default-OFF analyzers explicitly enabled.
+            -- (The other ~157 analyzers are default-ON and need no entry.)
+            -- Override below to turn any OFF.
+            ST1000 = false, -- missing/incorrect package comment (intentionally off)
+
+            -- staticcheck: quickfix (QF)
+            QF1001 = true, QF1005 = true, QF1006 = true, QF1007 = true,
+            QF1008 = true, QF1011 = true,
+
+            -- staticcheck: simplifications (S)
+            S1002 = true, S1005 = true, S1006 = true, S1008 = true, S1011 = true,
+            S1016 = true, S1021 = true, S1025 = true, S1029 = true,
+
+            -- staticcheck: correctness/bugs (SA)
+            SA1000 = true, SA1002 = true, SA1003 = true, SA1007 = true, SA1010 = true,
+            SA1011 = true, SA1014 = true, SA1015 = true, SA1017 = true, SA1018 = true,
+            SA1020 = true, SA1021 = true, SA1023 = true, SA1024 = true, SA1025 = true,
+            SA1026 = true, SA1027 = true, SA1028 = true, SA1029 = true, SA1030 = true,
+            SA1031 = true, SA1032 = true, SA2002 = true, SA2003 = true, SA4005 = true,
+            SA4006 = true, SA4008 = true, SA4009 = true, SA4010 = true, SA4012 = true,
+            SA4015 = true, SA4017 = true, SA4018 = true, SA4023 = true, SA4031 = true,
+            SA5000 = true, SA5002 = true, SA5005 = true, SA5007 = true, SA5010 = true,
+            SA5012 = true, SA6000 = true, SA6001 = true, SA6002 = true, SA6003 = true,
+            SA9001 = true, SA9003 = true, SA9005 = true, SA9007 = true, SA9008 = true,
+
+            -- staticcheck: style (ST)
+            ST1001 = true, ST1003 = true, ST1005 = true, ST1006 = true, ST1008 = true,
+            ST1011 = true, ST1012 = true, ST1013 = true, ST1015 = true, ST1016 = true,
+            ST1017 = true, ST1018 = true, ST1019 = true, ST1020 = true, ST1021 = true,
+            ST1022 = true, ST1023 = true,
+
+            -- gopls native analyzers
+            appendclipped = true,
+            fieldalignment = false,
+            shadow = true,
+            slicesdelete = true,
+          },
+          completeUnimported = true,
+          staticcheck = true,
+          directoryFilters = { '-.git', '-.vscode', '-.idea', '-.vscode-test', '-node_modules' },
+          semanticTokens = true,
+        },
+      },
+    },
+
+    golangci_lint_ls = {
+      -- Mirror lspconfig's default v2 command, adding `--disable=goconst` to
+      -- ignore the goconst linter. (Overriding init_options.command replaces
+      -- the default entirely, so the output flags must be repeated here.)
+      init_options = {
+        command = {
+          'golangci-lint',
+          'run',
+          '--disable=goconst',
+          '--output.text.path=',
+          '--output.tab.path=',
+          '--output.html.path=',
+          '--output.checkstyle.path=',
+          '--output.junit-xml.path=',
+          '--output.teamcity.path=',
+          '--output.sarif.path=',
+          '--show-stats=false',
+          '--output.json.path=stdout',
+        },
+      },
+    },
+
     -- pyright = {},
     -- rust_analyzer = {},
     --
@@ -805,7 +870,7 @@ do
     },
   }
 
-  vim.keymap.set({ 'n', 'v' }, '<leader>f', function() require('conform').format { async = true } end, { desc = '[F]ormat buffer' })
+  vim.keymap.set({ 'n', 'v' }, '<leader>cf', function() require('conform').format { async = true } end, { desc = '[F]ormat buffer' })
 end
 
 -- ============================================================
@@ -976,7 +1041,7 @@ do
   -- NOTE: You can add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-  -- require 'custom.plugins'
+  require 'custom.plugins'
 end
 
 -- The line beneath this is called `modeline`. See `:help modeline`

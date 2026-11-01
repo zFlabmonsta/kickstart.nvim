@@ -118,11 +118,10 @@ do
   -- Don't show the mode, since it's already in the status line
   vim.o.showmode = false
 
-  -- Sync clipboard between OS and Neovim.
-  --  Schedule the setting after `UiEnter` because it can increase startup-time.
-  --  Remove this option if you want your OS clipboard to remain independent.
-  --  See `:help 'clipboard'`
-  vim.schedule(function() vim.o.clipboard = 'unnamedplus' end)
+  -- Keep OS clipboard independent of Neovim registers.
+  --  Delete/change operations (d, c, x, ...) will NOT clobber the system clipboard.
+  --  Use <leader>y / <leader>p to explicitly interact with the system clipboard (+ register).
+  vim.o.clipboard = ''
 
   -- Enable break indent
   vim.o.breakindent = true
@@ -187,8 +186,10 @@ do
   vim.keymap.set('n', 'n', 'nzzzv')
   vim.keymap.set('n', 'N', 'Nzzzv')
 
-  vim.keymap.set({ 'n', 'v' }, '<leader>y', '"+y')
-  vim.keymap.set('n', '<leader>Y', '"+Y')
+  vim.keymap.set({ 'n', 'v' }, '<leader>y', '"+y', { desc = 'Yank to system clipboard' })
+  vim.keymap.set('n', '<leader>Y', '"+Y', { desc = 'Yank line to system clipboard' })
+  vim.keymap.set({ 'n', 'v' }, '<leader>p', '"+p', { desc = 'Paste from system clipboard' })
+  vim.keymap.set('n', '<leader>P', '"+P', { desc = 'Paste before from system clipboard' })
 end
 
 -- ============================================================
@@ -824,6 +825,7 @@ do
   -- You can press `g?` for help in this menu.
   local ensure_installed = vim.tbl_keys(servers or {})
   vim.list_extend(ensure_installed, {
+    'goimports',
     -- You can add other tools here that you want Mason to install
   })
 
@@ -847,11 +849,12 @@ do
     format_on_save = function(bufnr)
       -- You can specify filetypes to autoformat on save here:
       local enabled_filetypes = {
+        go = true,
         -- lua = true,
         -- python = true,
       }
       if enabled_filetypes[vim.bo[bufnr].filetype] then
-        return { timeout_ms = 500 }
+        return { timeout_ms = 2000 }
       else
         return nil
       end
@@ -861,6 +864,7 @@ do
     },
     -- You can also specify external formatters in here.
     formatters_by_ft = {
+      go = { 'goimports' },
       -- rust = { 'rustfmt' },
       -- Conform can also run multiple formatters sequentially
       -- python = { "isort", "black" },
